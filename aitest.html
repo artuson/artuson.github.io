@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Gemini Flash 2.0 Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #4285f4;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            display: block;
+            margin: 10px auto;
+        }
+        #imageDisplay {
+            display: none;
+            text-align: center;
+        }
+        #resultPanel {
+            display: none;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #3b78e7;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .api-key-input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4285f4;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Google Gemini Flash 2.0 Interface</h1>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>Step 1: API Configuration</h2>
+            <div>
+                <label for="apiKey">Enter Google Gemini Flash 2.0 API Key:</label>
+                <input type="password" id="apiKey" class="api-key-input" placeholder="Your API Key">
+                <p><small>Note: Your API key is only used for requests and is not stored anywhere.</small></p>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Step 2: Upload Image</h2>
+            <input type="file" id="imageUpload" accept="image/*">
+            <div id="imageDisplay">
+                <img id="previewImage" class="image-preview" alt="Preview">
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Step 3: Ask a Question</h2>
+            <textarea id="questionInput" placeholder="Type your question about the image here..."></textarea>
+        </div>
+
+        <div class="panel">
+            <h2>Step 4: AI Analysis</h2>
+            <button id="analyzeButton" disabled>Analyze Image</button>
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>Processing...</p>
+            </div>
+            
+            <div id="resultPanel">
+                <h3>Gemini Flash 2.0 Results:</h3>
+                <div id="apiResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const apiKeyInput = document.getElementById('apiKey');
+        const imageUpload = document.getElementById('imageUpload');
+        const previewImage = document.getElementById('previewImage');
+        const imageDisplay = document.getElementById('imageDisplay');
+        const questionInput = document.getElementById('questionInput');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const resultPanel = document.getElementById('resultPanel');
+        const apiResults = document.getElementById('apiResults');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        let imageData = null;
+
+        // Enable analyze button if inputs are valid
+        function checkInputs() {
+            analyzeButton.disabled = !apiKeyInput.value || !imageData || !questionInput.value.trim();
+        }
+
+        // Handle API key input
+        apiKeyInput.addEventListener('input', checkInputs);
+
+        // Handle question input
+        questionInput.addEventListener('input', checkInputs);
+
+        // Handle image upload
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file && file.type.match('image.*')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imageData = e.target.result.split(',')[1]; // Get base64 data without prefix
+                    previewImage.src = e.target.result;
+                    imageDisplay.style.display = 'block';
+                    checkInputs();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Analyze image with Google Gemini Flash 2.0
+        analyzeButton.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value;
+            const question = questionInput.value.trim();
+
+            if (!apiKey || !imageData || !question) {
+                alert('Please provide an API key, upload an image, and type a question.');
+                return;
+            }
+
+            try {
+                loadingIndicator.style.display = 'block';
+                analyzeButton.disabled = true;
+
+                // Prepare the request
+                const requestBody = {
+                    image: imageData,
+                    question: question,
+                    features: ["classification", "detection", "text_analysis"]
+                };
+
+                // Make the API request directly to Google Gemini Flash 2.0
+                const response = await fetch(`https://gemini.googleapis.com/v2/flash/analyze?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                }
+
+                // Parse and display the results
+                const geminiResponse = await response.json();
+                displayApiResults(geminiResponse);
+
+                // Show the results panel
+                resultPanel.style.display = 'block';
+
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error('Error details:', error);
+            } finally {
+                loadingIndicator.style.display = 'none';
+                analyzeButton.disabled = false;
+            }
+        });
+
+        // Display API results
+        function displayApiResults(data) {
+            if (!data || !data.results) {
+                apiResults.innerHTML = '<p>No results returned from the API.</p>';
+                return;
+            }
+
+            let resultsHtml = '<div style="max-height: 300px; overflow-y: auto;">';
+
+            // Classification results
+            if (data.results.classification) {
+                resultsHtml += '<h4>Classification:</h4><ul>';
+                data.results.classification.forEach(item => {
+                    resultsHtml += `<li>${item.label} (${(item.confidence * 100).toFixed(1)}%)</li>`;
+                });
+                resultsHtml += '</ul>';
+            }
+
+            // Object detection results
+            if (data.results.detection) {
+                resultsHtml += '<h4>Detected Objects:</h4><ul>';
+                data.results.detection.forEach(obj => {
+                    resultsHtml += `<li>${obj.name} (${(obj.confidence * 100).toFixed(1)}%)</li>`;
+                });
+                resultsHtml += '</ul>';
+            }
+
+            // Text analysis results
+            if (data.results.text) {
+                resultsHtml += '<h4>Text Analysis:</h4>';
+                resultsHtml += `<p>${data.results.text.content}</p>`;
+            }
+
+            resultsHtml += '</div>';
+            apiResults.innerHTML = resultsHtml;
+        }
+    </script>
+</body>
+</html>

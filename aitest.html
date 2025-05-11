@@ -194,7 +194,7 @@
                 };
 
                 // Make the API request directly to Google Gemini Flash 2.0
-                const response = await fetch(`https://gemini.googleapis.com/v2/flash/analyze?key=${apiKey}`, {
+                const response = await fetch(`https://cors-anywhere.herokuapp.com/https://gemini.googleapis.com/v2/flash/analyze?key=${apiKey}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
